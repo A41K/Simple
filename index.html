@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Work Countdown</title>
+  <script defer src="https://unpkg.com/react@17/umd/react.development.js"></script>
+  <script defer src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+  <script defer src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script defer src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen">
+  <div id="root" class="w-full h-full"></div>
+  <script type="text/babel">
+    function WorkApp() {
+      const { useState, useEffect } = React;
+      const [showPicker, setShowPicker] = useState(false);
+      const [selectedColor, setSelectedColor] = useState("#7D3C98");
+      const [time, setTime] = useState(10);
+      const [remainingTime, setRemainingTime] = useState(time);
+      const [isRunning, setIsRunning] = useState(false);
+      const [editingTime, setEditingTime] = useState(false);
+      const [workText, setWorkText] = useState("WORK");
+      const [dragging, setDragging] = useState(null);
+      const [position, setPosition] = useState({ x: 0, y: 0 });
+      
+      const fancyColors = ["#7D3C98", "#1ABC9C", "#E74C3C", "#F39C12", "#8E44AD", "#3498DB", "#2ECC71", "#D35400"];
+      
+      useEffect(() => {
+        let interval;
+        if (isRunning && remainingTime > 0) {
+          interval = setInterval(() => {
+            setRemainingTime((prev) => Math.max(prev - 1, 0));
+          }, 1000);
+        } else if (remainingTime === 0) {
+          setIsRunning(false);
+        }
+        return () => clearInterval(interval);
+      }, [isRunning, remainingTime]);
+      
+      const formatTime = (seconds) => {
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const secs = seconds % 60;
+        
+        if (hours > 0) {
+          return `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        } else if (minutes > 0) {
+          return `${minutes}:${String(secs).padStart(2, '0')}`;
+        } else {
+          return `${secs}`;
+        }
+      };
+      
+      const startCountdown = () => {
+        setRemainingTime(time);
+        setIsRunning(true);
+      };
+      
+      const handleMouseDown = (e) => {
+        setDragging({ x: e.clientX - position.x, y: e.clientY - position.y });
+      };
+      
+      const handleMouseMove = (e) => {
+        if (dragging) {
+          setPosition({ x: e.clientX - dragging.x, y: e.clientY - dragging.y });
+        }
+      };
+      
+      const handleMouseUp = () => {
+        setDragging(null);
+      };
+      
+      useEffect(() => {
+        window.addEventListener("mousemove", handleMouseMove);
+        window.addEventListener("mouseup", handleMouseUp);
+        return () => {
+          window.removeEventListener("mousemove", handleMouseMove);
+          window.removeEventListener("mouseup", handleMouseUp);
+        };
+      }, [dragging]);
+      
+      return (
+        <div className="flex flex-col items-center justify-center min-h-screen w-full h-full bg-gray-800 border-4 border-gray-600 p-8 shadow-xl">
+          <h1 
+            className="text-6xl font-bold cursor-pointer transition-all duration-1000 ease-in-out font-serif"
+            onClick={() => {
+              const newText = prompt("Enter new text:", workText);
+              if (newText) setWorkText(newText);
+            }}
+            style={{ color: selectedColor, opacity: showPicker ? 0.5 : 1 }}
+          >
+            {workText}
+          </h1>
+          {showPicker && (
+            <div className="mt-4 flex flex-wrap justify-center bg-gray-700 rounded-full p-4 transition-all duration-700 ease-in-out transform scale-110">
+              {fancyColors.map((color) => (
+                <div
+                  key={color}
+                  className="w-12 h-12 m-2 rounded-full cursor-pointer border-2 border-white shadow-lg transition-all duration-500 transform hover:scale-125"
+                  style={{ backgroundColor: color }}
+                  onClick={() => {
+                    setSelectedColor(color);
+                    setShowPicker(false);
+                  }}
+                ></div>
+              ))}
+            </div>
+          )}
+          <h2 className="mt-4 text-3xl cursor-pointer text-white" onClick={() => setEditingTime(true)}>
+            {editingTime ? (
+              <input
+                type="number"
+                value={time}
+                onChange={(e) => setTime(Number(e.target.value))}
+                onBlur={() => { setEditingTime(false); setRemainingTime(time); }}
+                className="p-2 text-black rounded-md"
+                autoFocus
+              />
+            ) : (
+              formatTime(remainingTime)
+            )}
+          </h2>
+          <div className="w-full max-w-lg h-4 mt-4 bg-gray-600 rounded-lg overflow-hidden cursor-pointer shadow-inner" onClick={() => setEditingTime(true)}>
+            <div
+              className="h-full transition-all duration-1000 linear"
+              style={{ width: `${(remainingTime / time) * 100}%`, backgroundColor: selectedColor }}
+            ></div>
+          </div>
+          <button onClick={startCountdown} className="mt-4 px-4 py-2 bg-blue-500 rounded-md shadow-md hover:bg-blue-600">
+            Start Countdown
+          </button>
+        </div>
+      );
+    }
+    
+    ReactDOM.render(<WorkApp />, document.getElementById("root"));
+  </script>
+</body>
+</html>
